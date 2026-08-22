@@ -100,7 +100,7 @@ export function GeneratorPage() {
             systemInstruction: `You are an expert prompt engineer. Generate a high-quality, structured prompt based on the user's request. Output language: ${outputLang}.`,
             userPrompt: `User idea: ${input}\n\nCategory: ${offlineResult.detectedCategory}\nIntent: ${offlineResult.detectedIntent}\nStyle: ${style}\n\nGenerate a complete, detailed prompt. Return only the prompt text.`,
             temperature: 0.7,
-            maxTokens: 4000,
+            maxTokens: 3000,
           })
           setResult({
             ...offlineResult,

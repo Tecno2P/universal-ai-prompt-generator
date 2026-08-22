@@ -48,7 +48,7 @@ export function UpdatesPage() {
         systemInstruction: 'You are a JSON API. Return ONLY valid JSON. No reasoning, no explanation, no markdown. Start your response with { and end with }.',
         userPrompt: prompt,
         temperature: 0.3,
-        maxTokens: 8000,
+        maxTokens: 4000,
       })
 
       // Try to parse JSON from the response
