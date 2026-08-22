@@ -26,7 +26,7 @@ export async function deriveKeyFromPassword(
   // Import the password as a raw key material
   const passwordKey = await SUBTLE.importKey(
     'raw',
-    new TextEncoder().encode(password),
+    new TextEncoder().encode(password) as BufferSource,
     { name: 'PBKDF2' },
     false,
     ['deriveKey'],
@@ -36,7 +36,7 @@ export async function deriveKeyFromPassword(
   return SUBTLE.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt as BufferSource,
       iterations,
       hash: 'SHA-256',
     },

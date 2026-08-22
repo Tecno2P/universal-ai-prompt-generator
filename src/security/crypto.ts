@@ -25,7 +25,7 @@ export async function importKey(rawKey: Uint8Array): Promise<CryptoKey> {
   if (rawKey.byteLength !== AES_KEY_LENGTH / 8) {
     throw new Error(`Invalid key length: expected ${AES_KEY_LENGTH / 8} bytes, got ${rawKey.byteLength}`)
   }
-  return SUBTLE!.importKey('raw', rawKey, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
+  return SUBTLE!.importKey('raw', rawKey as BufferSource, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
 }
 
 /** Encrypt plaintext using AES-256-GCM. Returns base64 ciphertext + base64 IV. */
@@ -38,9 +38,9 @@ export async function encrypt(
   const encoded = new TextEncoder().encode(plaintext)
 
   const encrypted = await SUBTLE!.encrypt(
-    { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', iv: iv as BufferSource },
     key,
-    encoded,
+    encoded as BufferSource,
   )
 
   return {
@@ -64,9 +64,9 @@ export async function decrypt(
   }
 
   const decrypted = await SUBTLE!.decrypt(
-    { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', iv: iv as BufferSource },
     key,
-    ciphertext,
+    ciphertext as BufferSource,
   )
 
   return new TextDecoder().decode(decrypted)
