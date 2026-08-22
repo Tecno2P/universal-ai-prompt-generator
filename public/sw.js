@@ -1,5 +1,5 @@
 // Service Worker for Universal AI Prompt Generator PWA
-const CACHE_NAME = 'prompt-gen-v1'
+const CACHE_NAME = 'prompt-gen-v3'
 const ASSETS = [
   './',
   './index.html',
@@ -27,25 +27,24 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET
   if (event.request.method !== 'GET') return
 
-  // Network-first for navigation, cache fallback
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match('./index.html'))
-    )
-    return
-  }
-
-  // Cache-first for static assets
+  // Network-first for ALL requests — always fetch fresh from server, fall back to cache if offline
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached
-      return fetch(event.request).then((response) => {
-        // Don't cache API requests or cross-origin
-        if (!event.request.url.startsWith(self.location.origin)) return response
-        const clone = response.clone()
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {})
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful same-origin responses for offline use
+        if (response.ok && event.request.url.startsWith(self.location.origin)) {
+          const clone = response.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {})
+        }
         return response
-      }).catch(() => cached)
-    })
+      })
+      .catch(() => {
+        // Offline — try cache, then fallback to index.html for navigation
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached
+          if (event.request.mode === 'navigate') return caches.match('./index.html')
+          throw new Error('No cached response available')
+        })
+      })
   )
 })
