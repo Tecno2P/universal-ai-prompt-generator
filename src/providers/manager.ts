@@ -44,6 +44,9 @@ export async function generateWithProvider(
   const adapter = getAdapter(config.providerId)
   const ctx = await createContext(config)
   if (!adapter || !ctx) throw new Error(`No adapter found for provider: ${config.providerId}`)
+  if (!ctx.config.apiKey) {
+    throw new Error('API key not found. Your session may have expired — go to Settings and re-add the provider.')
+  }
   return adapter.generate(req, ctx)
 }
 
