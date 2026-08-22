@@ -40,7 +40,9 @@ export class OpenAIAdapter implements IAIAdapter {
     }
 
     const data = await res.json()
-    const text = data?.choices?.[0]?.message?.content || ''
+    // Some models (e.g. Sarvam-105B) may put text in reasoning_content when content is null
+    const choice = data?.choices?.[0]?.message
+    const text = choice?.content || choice?.reasoning_content || ''
     const tokensUsed = data?.usage?.total_tokens
 
     return {
@@ -115,8 +117,8 @@ export class OpenAIAdapter implements IAIAdapter {
     try {
       const res = await this.generate({
         model: ctx.config.model,
-        userPrompt: 'Say "OK" in one word.',
-        maxTokens: 5,
+        userPrompt: 'Say OK',
+        maxTokens: 100,
         temperature: 0,
       }, ctx)
       return !!res.text
