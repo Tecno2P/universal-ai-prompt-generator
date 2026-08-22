@@ -183,6 +183,21 @@ export const PROVIDER_REGISTRY: AIProvider[] = [
     docsUrl: 'https://github.com/ollama/ollama/blob/main/docs/api.md',
   },
   {
+    id: 'sarvam',
+    name: 'Sarvam AI',
+    adapter: 'openai', // OpenAI-compatible
+    defaultEndpoint: 'https://api.sarvam.ai/v1',
+    authType: 'bearer',
+    models: [
+      { id: 'sarvam-m', name: 'Sarvam-M', contextWindow: 8192 },
+      { id: 'ananta-21b-instruct', name: 'Ananta 21B Instruct', contextWindow: 8192 },
+      { id: 'ananta-turbo', name: 'Ananta Turbo', contextWindow: 8192 },
+    ],
+    supportsStream: true,
+    supportsCustomEndpoint: false,
+    docsUrl: 'https://docs.sarvam.ai',
+  },
+  {
     id: 'generic',
     name: 'Generic OpenAI-compatible',
     adapter: 'openai',
