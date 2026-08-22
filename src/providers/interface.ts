@@ -50,6 +50,8 @@ export function buildHeaders(provider: AIProvider, apiKey?: string): Record<stri
   } else if (provider.authType === 'x-api-key' && apiKey) {
     headers['x-api-key'] = apiKey
     headers['anthropic-version'] = '2023-06-01' // Claude specific
+  } else if (provider.authType === 'api-subscription-key' && apiKey) {
+    headers['api-subscription-key'] = apiKey
   }
   return headers
 }

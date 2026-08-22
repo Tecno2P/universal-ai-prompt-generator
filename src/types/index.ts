@@ -130,7 +130,7 @@ export interface AIProvider {
   name: string
   adapter: string
   defaultEndpoint: string
-  authType: 'bearer' | 'x-api-key' | 'none'
+  authType: 'bearer' | 'x-api-key' | 'api-subscription-key' | 'none'
   models: AIProviderModel[]
   supportsStream: boolean
   supportsCustomEndpoint: boolean

@@ -187,11 +187,10 @@ export const PROVIDER_REGISTRY: AIProvider[] = [
     name: 'Sarvam AI',
     adapter: 'openai', // OpenAI-compatible
     defaultEndpoint: 'https://api.sarvam.ai/v1',
-    authType: 'bearer',
+    authType: 'api-subscription-key',
     models: [
-      { id: 'sarvam-m', name: 'Sarvam-M', contextWindow: 8192 },
-      { id: 'ananta-21b-instruct', name: 'Ananta 21B Instruct', contextWindow: 8192 },
-      { id: 'ananta-turbo', name: 'Ananta Turbo', contextWindow: 8192 },
+      { id: 'sarvam-105b', name: 'Sarvam-105B', contextWindow: 128000 },
+      { id: 'sarvam-105b-conversations', name: 'Sarvam-105B Conversations', contextWindow: 128000 },
     ],
     supportsStream: true,
     supportsCustomEndpoint: false,
