@@ -61,12 +61,24 @@ export function resolveEndpoint(ctx: AdapterContext): string {
   return ctx.config.customEndpoint || ctx.provider.defaultEndpoint
 }
 
-// Helper: map common HTTP errors to friendly messages
+// Helper: map common HTTP errors to friendly messages, including the API's own error text
 export function mapHttpError(status: number, body: string): ProviderError {
+  // Try to extract the provider's own error message from the response body
+  let apiMessage = ''
+  let apiCode = ''
+  try {
+    const parsed = JSON.parse(body)
+    apiMessage = parsed?.error?.message || parsed?.message || parsed?.detail || ''
+    apiCode = parsed?.error?.code || ''
+  } catch {
+    // body wasn't JSON — use it raw if short enough
+    if (body && body.length < 200) apiMessage = body
+  }
+
   const messages: Record<number, string> = {
     400: 'The request was invalid. Check your parameters and try again.',
-    401: 'Invalid API key. Please verify your key is correct.',
-    403: 'Access forbidden. Your API key may not have permission for this model.',
+    401: 'Invalid or missing API key. Please verify your key is correct.',
+    403: 'Invalid or missing API key. Please check your API key is correct and has not expired.',
     404: 'The requested model or endpoint was not found.',
     429: 'Rate limit exceeded. Please wait and try again.',
     500: 'The AI provider is experiencing issues. Try again later.',
@@ -74,6 +86,7 @@ export function mapHttpError(status: number, body: string): ProviderError {
     503: 'The AI provider is temporarily unavailable. Try again later.',
     504: 'The request timed out. Try again or use a shorter prompt.',
   }
-  const msg = messages[status] || `Request failed with status ${status}`
-  return new ProviderError(msg, status)
+  const baseMsg = messages[status] || `Request failed with status ${status}`
+  const suffix = apiMessage ? ` (Provider: ${apiMessage})` : ''
+  return new ProviderError(baseMsg + suffix, status, apiCode)
 }

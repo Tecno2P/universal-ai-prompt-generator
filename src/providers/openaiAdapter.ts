@@ -24,9 +24,9 @@ export class OpenAIAdapter implements IAIAdapter {
         { role: 'user', content: req.userPrompt },
       ],
       temperature: req.temperature ?? 0.7,
-      max_tokens: req.maxTokens,
       stream: false,
     }
+    if (req.maxTokens) body.max_tokens = req.maxTokens
 
     const res = await fetch(`${endpoint}/chat/completions`, {
       method: 'POST',
@@ -68,9 +68,9 @@ export class OpenAIAdapter implements IAIAdapter {
         { role: 'user', content: req.userPrompt },
       ],
       temperature: req.temperature ?? 0.7,
-      max_tokens: req.maxTokens,
       stream: true,
     }
+    if (req.maxTokens) body.max_tokens = req.maxTokens
 
     const res = await fetch(`${endpoint}/chat/completions`, {
       method: 'POST',
