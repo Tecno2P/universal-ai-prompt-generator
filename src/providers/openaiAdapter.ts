@@ -40,9 +40,9 @@ export class OpenAIAdapter implements IAIAdapter {
     }
 
     const data = await res.json()
-    // Some models (e.g. Sarvam-105B) may put text in reasoning_content when content is null
+    // Use content only — reasoning_content is the model's internal thinking, NOT the answer
     const choice = data?.choices?.[0]?.message
-    const text = choice?.content || choice?.reasoning_content || ''
+    const text = choice?.content || ''
     const tokensUsed = data?.usage?.total_tokens
 
     return {
