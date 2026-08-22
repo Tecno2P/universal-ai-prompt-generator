@@ -25,12 +25,18 @@ export function validateUpdatePackage(pkg: unknown): ValidationResult {
 
   const p = pkg as Record<string, unknown>
 
+  // Auto-fill schema_version and database_version if missing (some AI models omit these)
+  if (p.schema_version === undefined) {
+    p.schema_version = 1
+    warnings.push('schema_version was missing, defaulted to 1')
+  }
   if (p.schema_version !== 1) {
-    errors.push(`Invalid or missing schema_version (expected 1, got ${p.schema_version})`)
+    errors.push(`Invalid schema_version (expected 1, got ${p.schema_version})`)
   }
 
   if (!p.database_version || typeof p.database_version !== 'string') {
-    errors.push('Missing or invalid database_version')
+    p.database_version = '1.0.1'
+    warnings.push('database_version was missing, defaulted to 1.0.1')
   }
 
   if (!Array.isArray(p.changes)) {

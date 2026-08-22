@@ -58,7 +58,9 @@ export function UpdatesPage() {
         const clean = result.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
         parsed = JSON.parse(clean)
       } catch {
-        showToast('AI returned invalid JSON. Try again.', 'error')
+        // Show a more helpful error with a snippet of what the AI returned
+        const snippet = result.text.slice(0, 200).replace(/\n/g, ' ')
+        showToast(`AI returned invalid JSON. Got: "${snippet}..." — try again or use a different model.`, 'error')
         return
       }
 
