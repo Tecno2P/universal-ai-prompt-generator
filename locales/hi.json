@@ -10,7 +10,12 @@
     "updates": "अपडेट्स",
     "history": "हिस्ट्री",
     "settings": "सेटिंग्स",
-    "about": "परिचय"
+    "about": "परिचय",
+    "sandbox": "Sandbox",
+    "tools": "Tools",
+    "dbHealth": "DB Health",
+    "providerHealth": "Providers",
+    "diagnostics": "Diagnostics"
   },
   "common": {
     "generate": "जनरेट करें",

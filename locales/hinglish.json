@@ -10,7 +10,12 @@
     "updates": "Updates",
     "history": "History",
     "settings": "Settings",
-    "about": "About"
+    "about": "About",
+    "sandbox": "Sandbox",
+    "tools": "Tools",
+    "dbHealth": "DB Health",
+    "providerHealth": "Providers",
+    "diagnostics": "Diagnostics"
   },
   "common": {
     "generate": "Generate Karo",

@@ -11,6 +11,11 @@ import { UpdatesPage } from '@/pages/UpdatesPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { AboutPage } from '@/pages/AboutPage'
+import { ToolsPage } from '@/pages/ToolsPage'
+import { SandboxPage } from '@/pages/SandboxPage'
+import { DatabaseHealthPage } from '@/pages/DatabaseHealthPage'
+import { ProviderHealthPage } from '@/pages/ProviderHealthPage'
+import { DiagnosticsPage } from '@/pages/DiagnosticsPage'
 
 export default function App() {
   return (
@@ -28,6 +33,11 @@ export default function App() {
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/about" element={<AboutPage />} />
+              <Route path="/tools" element={<ToolsPage />} />
+              <Route path="/sandbox" element={<SandboxPage />} />
+              <Route path="/database-health" element={<DatabaseHealthPage />} />
+              <Route path="/provider-health" element={<ProviderHealthPage />} />
+              <Route path="/diagnostics" element={<DiagnosticsPage />} />
             </Routes>
           </Layout>
         </HashRouter>

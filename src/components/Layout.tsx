@@ -10,6 +10,11 @@ const navItems = [
   { path: '/playground', key: 'nav.playground', icon: PlaygroundIcon },
   { path: '/library', key: 'nav.library', icon: LibraryIcon },
   { path: '/updates', key: 'nav.updates', icon: UpdatesIcon },
+  { path: '/sandbox', key: 'nav.sandbox', icon: SandboxIcon },
+  { path: '/tools', key: 'nav.tools', icon: ToolsIcon },
+  { path: '/database-health', key: 'nav.dbHealth', icon: DatabaseHealthIcon },
+  { path: '/provider-health', key: 'nav.providerHealth', icon: ProviderHealthIcon },
+  { path: '/diagnostics', key: 'nav.diagnostics', icon: DiagnosticsIcon },
   { path: '/history', key: 'nav.history', icon: HistoryIcon },
   { path: '/settings', key: 'nav.settings', icon: SettingsIcon },
   { path: '/about', key: 'nav.about', icon: AboutIcon },
@@ -131,6 +136,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 // Inline icon components (no external icon dependency)
+function SandboxIcon({ className }: { className?: string }) {
+  return (<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h18v18H3z"/><path d="M3 9h18M9 3v18"/></svg>)
+}
+function ToolsIcon({ className }: { className?: string }) {
+  return (<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a4 4 0 015.66 5.66l-2.83 2.83-5.66-5.66 2.83-2.83z"/><path d="M12 12L3 21"/></svg>)
+}
+function DatabaseHealthIcon({ className }: { className?: string }) {
+  return (<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4 3 9 3s9-1.34 9-3v-6"/></svg>)
+}
+function ProviderHealthIcon({ className }: { className?: string }) {
+  return (<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>)
+}
+function DiagnosticsIcon({ className }: { className?: string }) {
+  return (<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>)
+}
+
 function HomeIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">

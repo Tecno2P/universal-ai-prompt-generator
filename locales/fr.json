@@ -10,7 +10,12 @@
     "updates": "Mises à jour",
     "history": "Historique",
     "settings": "Paramètres",
-    "about": "À propos"
+    "about": "À propos",
+    "sandbox": "Sandbox",
+    "tools": "Tools",
+    "dbHealth": "DB Health",
+    "providerHealth": "Providers",
+    "diagnostics": "Diagnostics"
   },
   "common": {
     "generate": "Générer",
