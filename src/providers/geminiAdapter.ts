@@ -1,10 +1,21 @@
 import type {
-  IAIAdapter, GenerateRequest, GenerateResponse, AdapterContext,
+  IAIAdapter, GenerateRequest, GenerateResponse, AdapterContext, ProviderCapabilities,
 } from './interface'
-import { ProviderError, buildHeaders, resolveEndpoint, mapHttpError } from './interface'
+import { ProviderError, resolveEndpoint, mapHttpError, STRICT_JSON_INSTRUCTION } from './interface'
 
-// Google Gemini adapter — uses the generateContent endpoint with API key as query param
+// Google Gemini adapter — uses the generateContent endpoint
 export class GeminiAdapter implements IAIAdapter {
+  getCapabilities(_ctx: AdapterContext): ProviderCapabilities {
+    return {
+      streaming: true,
+      // Gemini supports responseMimeType: 'application/json' in generationConfig
+      jsonMode: true,
+      // Gemini also supports responseSchema for JSON schema enforcement
+      jsonSchema: true,
+      systemInstruction: true,
+    }
+  }
+
   async generate(req: GenerateRequest, ctx: AdapterContext): Promise<GenerateResponse> {
     const start = performance.now()
     const endpoint = resolveEndpoint(ctx)
@@ -12,15 +23,24 @@ export class GeminiAdapter implements IAIAdapter {
     if (!apiKey) throw new ProviderError('API key is required for Gemini', 401)
 
     const contents = [{ role: 'user', parts: [{ text: req.userPrompt }] }]
-    const body: Record<string, unknown> = {
-      contents,
-      generationConfig: {
-        temperature: req.temperature ?? 0.7,
-        maxOutputTokens: req.maxTokens ?? 4096,
-      },
+    const generationConfig: Record<string, unknown> = {
+      temperature: req.temperature ?? 0.7,
+      maxOutputTokens: req.maxTokens ?? 4096,
     }
-    if (req.systemInstruction) {
-      body.systemInstruction = { parts: [{ text: req.systemInstruction }] }
+
+    // Gemini supports native JSON mode via responseMimeType
+    if (req.jsonMode) {
+      generationConfig.responseMimeType = 'application/json'
+    }
+
+    const body: Record<string, unknown> = { contents, generationConfig }
+
+    let systemInstruction = req.systemInstruction
+    if (req.jsonMode) {
+      systemInstruction = (systemInstruction ? systemInstruction + '\n\n' : '') + STRICT_JSON_INSTRUCTION
+    }
+    if (systemInstruction) {
+      body.systemInstruction = { parts: [{ text: systemInstruction }] }
     }
 
     const url = `${endpoint}/models/${req.model}:generateContent`
@@ -53,15 +73,23 @@ export class GeminiAdapter implements IAIAdapter {
     if (!apiKey) throw new ProviderError('API key is required for Gemini', 401)
 
     const contents = [{ role: 'user', parts: [{ text: req.userPrompt }] }]
-    const body: Record<string, unknown> = {
-      contents,
-      generationConfig: {
-        temperature: req.temperature ?? 0.7,
-        maxOutputTokens: req.maxTokens ?? 4096,
-      },
+    const generationConfig: Record<string, unknown> = {
+      temperature: req.temperature ?? 0.7,
+      maxOutputTokens: req.maxTokens ?? 4096,
     }
-    if (req.systemInstruction) {
-      body.systemInstruction = { parts: [{ text: req.systemInstruction }] }
+
+    if (req.jsonMode) {
+      generationConfig.responseMimeType = 'application/json'
+    }
+
+    const body: Record<string, unknown> = { contents, generationConfig }
+
+    let systemInstruction = req.systemInstruction
+    if (req.jsonMode) {
+      systemInstruction = (systemInstruction ? systemInstruction + '\n\n' : '') + STRICT_JSON_INSTRUCTION
+    }
+    if (systemInstruction) {
+      body.systemInstruction = { parts: [{ text: systemInstruction }] }
     }
 
     const url = `${endpoint}/models/${req.model}:streamGenerateContent?alt=sse`

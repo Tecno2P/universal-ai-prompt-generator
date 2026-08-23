@@ -12,6 +12,7 @@ import {
 import type { ProviderConfig, DatabaseVersion, PromptTemplate, UpdatePackage, UpdateChange } from '@/types'
 import { generateWithProvider } from '@/providers/manager'
 import { ProviderError } from '@/providers/interface'
+import { normalizeAIResponse } from '@/providers/normalizeResponse'
 
 export function UpdatesPage() {
   const { settings, hasAI } = useApp()
@@ -58,15 +59,19 @@ export function UpdatesPage() {
         userPrompt: prompt,
         temperature: 0.3,
         maxTokens: 4000,
+        jsonMode: true,
       })
 
       let parsed: unknown
       try {
-        const clean = result.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-        parsed = JSON.parse(clean)
-      } catch {
+        // Use robust normalizer: strips BOM, code fences, extracts JSON object,
+        // repairs trailing commas / single quotes, etc.
+        const normalized = normalizeAIResponse(result.text)
+        parsed = JSON.parse(normalized.cleaned)
+      } catch (parseErr) {
         const snippet = result.text.slice(0, 200).replace(/\n/g, ' ')
-        showToast(`AI returned invalid JSON. Got: "${snippet}..." — try again.`, 'error')
+        const errMsg = parseErr instanceof Error ? parseErr.message : 'Unknown parsing error'
+        showToast(`Could not parse AI response as JSON: ${errMsg}. Response starts with: "${snippet}..."`, 'error')
         return
       }
 

@@ -1,11 +1,24 @@
 import type {
-  IAIAdapter, GenerateRequest, GenerateResponse, AdapterContext,
+  IAIAdapter, GenerateRequest, GenerateResponse, AdapterContext, ProviderCapabilities,
 } from './interface'
-import { ProviderError, buildHeaders, resolveEndpoint, mapHttpError } from './interface'
+import { ProviderError, buildHeaders, resolveEndpoint, mapHttpError, STRICT_JSON_INSTRUCTION } from './interface'
 
 // OpenAI-compatible adapter — works for OpenAI, OpenRouter, Groq, Mistral,
 // DeepSeek, xAI, Together, Perplexity, Ollama, and generic OpenAI-compatible endpoints.
 export class OpenAIAdapter implements IAIAdapter {
+  getCapabilities(_ctx: AdapterContext): ProviderCapabilities {
+    return {
+      streaming: true,
+      // OpenAI-compatible APIs support response_format: { type: 'json_object' }
+      // Most providers in this family (OpenAI, Groq, Together, etc.) support it.
+      jsonMode: true,
+      // JSON Schema (response_format: { type: 'json_schema', json_schema: {...} })
+      // is OpenAI-specific and not universally supported by all OpenAI-compatible providers.
+      jsonSchema: false,
+      systemInstruction: true,
+    }
+  }
+
   async generate(req: GenerateRequest, ctx: AdapterContext): Promise<GenerateResponse> {
     const start = performance.now()
     const endpoint = resolveEndpoint(ctx)
@@ -17,16 +30,27 @@ export class OpenAIAdapter implements IAIAdapter {
       headers['X-Title'] = 'Universal AI Prompt Generator'
     }
 
+    // Build system instruction: append strict JSON instruction if jsonMode requested
+    let systemInstruction = req.systemInstruction
+    if (req.jsonMode) {
+      systemInstruction = (systemInstruction ? systemInstruction + '\n\n' : '') + STRICT_JSON_INSTRUCTION
+    }
+
     const body: Record<string, unknown> = {
       model: req.model,
       messages: [
-        ...(req.systemInstruction ? [{ role: 'system', content: req.systemInstruction }] : []),
+        ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
         { role: 'user', content: req.userPrompt },
       ],
       temperature: req.temperature ?? 0.7,
       stream: false,
     }
     if (req.maxTokens) body.max_tokens = req.maxTokens
+
+    // Use native JSON mode if supported and requested
+    if (req.jsonMode) {
+      body.response_format = { type: 'json_object' }
+    }
 
     const res = await fetch(`${endpoint}/chat/completions`, {
       method: 'POST',
@@ -63,16 +87,25 @@ export class OpenAIAdapter implements IAIAdapter {
       headers['X-Title'] = 'Universal AI Prompt Generator'
     }
 
+    let systemInstruction = req.systemInstruction
+    if (req.jsonMode) {
+      systemInstruction = (systemInstruction ? systemInstruction + '\n\n' : '') + STRICT_JSON_INSTRUCTION
+    }
+
     const body: Record<string, unknown> = {
       model: req.model,
       messages: [
-        ...(req.systemInstruction ? [{ role: 'system', content: req.systemInstruction }] : []),
+        ...(systemInstruction ? [{ role: 'system', content: systemInstruction }] : []),
         { role: 'user', content: req.userPrompt },
       ],
       temperature: req.temperature ?? 0.7,
       stream: true,
     }
     if (req.maxTokens) body.max_tokens = req.maxTokens
+
+    if (req.jsonMode) {
+      body.response_format = { type: 'json_object' }
+    }
 
     const res = await fetch(`${endpoint}/chat/completions`, {
       method: 'POST',

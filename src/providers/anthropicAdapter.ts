@@ -1,15 +1,31 @@
 import type {
-  IAIAdapter, GenerateRequest, GenerateResponse, AdapterContext,
+  IAIAdapter, GenerateRequest, GenerateResponse, AdapterContext, ProviderCapabilities,
 } from './interface'
-import { ProviderError, buildHeaders, resolveEndpoint, mapHttpError } from './interface'
+import { ProviderError, buildHeaders, resolveEndpoint, mapHttpError, STRICT_JSON_INSTRUCTION } from './interface'
 
 // Anthropic Claude adapter — uses the Messages API
 export class AnthropicAdapter implements IAIAdapter {
+  getCapabilities(_ctx: AdapterContext): ProviderCapabilities {
+    return {
+      streaming: true,
+      // Anthropic doesn't have a native JSON mode toggle, but follows
+      // system instructions well. We use strict prompt instruction fallback.
+      jsonMode: false,
+      jsonSchema: false,
+      systemInstruction: true,
+    }
+  }
+
   async generate(req: GenerateRequest, ctx: AdapterContext): Promise<GenerateResponse> {
     const start = performance.now()
     const endpoint = resolveEndpoint(ctx)
     const headers = buildHeaders(ctx.provider, ctx.config.apiKey)
     headers['anthropic-version'] = '2023-06-01'
+
+    let systemInstruction = req.systemInstruction
+    if (req.jsonMode) {
+      systemInstruction = (systemInstruction ? systemInstruction + '\n\n' : '') + STRICT_JSON_INSTRUCTION
+    }
 
     const body: Record<string, unknown> = {
       model: req.model,
@@ -17,8 +33,8 @@ export class AnthropicAdapter implements IAIAdapter {
       messages: [{ role: 'user', content: req.userPrompt }],
       temperature: req.temperature ?? 0.7,
     }
-    if (req.systemInstruction) {
-      body.system = req.systemInstruction
+    if (systemInstruction) {
+      body.system = systemInstruction
     }
 
     const res = await fetch(`${endpoint}/messages`, {
@@ -52,6 +68,11 @@ export class AnthropicAdapter implements IAIAdapter {
     headers['anthropic-version'] = '2023-06-01'
     headers['Accept'] = 'text/event-stream'
 
+    let systemInstruction = req.systemInstruction
+    if (req.jsonMode) {
+      systemInstruction = (systemInstruction ? systemInstruction + '\n\n' : '') + STRICT_JSON_INSTRUCTION
+    }
+
     const body: Record<string, unknown> = {
       model: req.model,
       max_tokens: req.maxTokens ?? 4096,
@@ -59,8 +80,8 @@ export class AnthropicAdapter implements IAIAdapter {
       temperature: req.temperature ?? 0.7,
       stream: true,
     }
-    if (req.systemInstruction) {
-      body.system = req.systemInstruction
+    if (systemInstruction) {
+      body.system = systemInstruction
     }
 
     const res = await fetch(`${endpoint}/messages`, {

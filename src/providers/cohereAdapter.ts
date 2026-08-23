@@ -1,14 +1,29 @@
 import type {
-  IAIAdapter, GenerateRequest, GenerateResponse, AdapterContext,
+  IAIAdapter, GenerateRequest, GenerateResponse, AdapterContext, ProviderCapabilities,
 } from './interface'
-import { ProviderError, buildHeaders, resolveEndpoint, mapHttpError } from './interface'
+import { ProviderError, buildHeaders, resolveEndpoint, mapHttpError, STRICT_JSON_INSTRUCTION } from './interface'
 
 // Cohere adapter — uses the chat API
 export class CohereAdapter implements IAIAdapter {
+  getCapabilities(_ctx: AdapterContext): ProviderCapabilities {
+    return {
+      streaming: true,
+      // Cohere doesn't have a native JSON mode toggle, uses preamble instruction
+      jsonMode: false,
+      jsonSchema: false,
+      systemInstruction: true,
+    }
+  }
+
   async generate(req: GenerateRequest, ctx: AdapterContext): Promise<GenerateResponse> {
     const start = performance.now()
     const endpoint = resolveEndpoint(ctx)
     const headers = buildHeaders(ctx.provider, ctx.config.apiKey)
+
+    let systemInstruction = req.systemInstruction
+    if (req.jsonMode) {
+      systemInstruction = (systemInstruction ? systemInstruction + '\n\n' : '') + STRICT_JSON_INSTRUCTION
+    }
 
     const body: Record<string, unknown> = {
       model: req.model,
@@ -16,8 +31,8 @@ export class CohereAdapter implements IAIAdapter {
       temperature: req.temperature ?? 0.7,
       max_tokens: req.maxTokens ?? 4096,
     }
-    if (req.systemInstruction) {
-      body.preamble = req.systemInstruction
+    if (systemInstruction) {
+      body.preamble = systemInstruction
     }
 
     const res = await fetch(`${endpoint}/chat`, {
@@ -47,6 +62,11 @@ export class CohereAdapter implements IAIAdapter {
     const endpoint = resolveEndpoint(ctx)
     const headers = buildHeaders(ctx.provider, ctx.config.apiKey)
 
+    let systemInstruction = req.systemInstruction
+    if (req.jsonMode) {
+      systemInstruction = (systemInstruction ? systemInstruction + '\n\n' : '') + STRICT_JSON_INSTRUCTION
+    }
+
     const body: Record<string, unknown> = {
       model: req.model,
       message: req.userPrompt,
@@ -54,8 +74,8 @@ export class CohereAdapter implements IAIAdapter {
       max_tokens: req.maxTokens ?? 4096,
       stream: true,
     }
-    if (req.systemInstruction) {
-      body.preamble = req.systemInstruction
+    if (systemInstruction) {
+      body.preamble = systemInstruction
     }
 
     const res = await fetch(`${endpoint}/chat`, {

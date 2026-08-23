@@ -473,7 +473,10 @@ Rules:
 - Do not include any script tags or HTML
 - Return ONLY valid JSON, no markdown fences
 
-Respond with the JSON update package only.`
+You must return exactly one valid JSON object matching the required schema.
+Do not include Markdown. Do not wrap the JSON in code fences.
+Do not add explanations before or after the JSON. Do not include comments.
+Your first character must be { and your final character must be }.`
 }
 
 export function incrementVersion(version: string): string {

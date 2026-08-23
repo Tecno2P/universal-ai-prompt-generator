@@ -7,6 +7,9 @@ export interface GenerateRequest {
   temperature?: number
   maxTokens?: number
   stream?: boolean
+  /** Request structured JSON output. When true, adapters use native JSON
+   * mode/schema where available, falling back to strict prompt instructions. */
+  jsonMode?: boolean
 }
 
 export interface GenerateResponse {
@@ -21,11 +24,28 @@ export interface AdapterContext {
   provider: AIProvider
 }
 
+/**
+ * Provider structured-output capabilities.
+ * Adapters declare what native structured-output features their provider supports.
+ * The manager chooses the strongest available method.
+ */
+export interface ProviderCapabilities {
+  streaming: boolean
+  /** Provider supports a `response_format: { type: 'json_object' }` mode */
+  jsonMode: boolean
+  /** Provider supports JSON Schema enforcement (e.g. response_schema) */
+  jsonSchema: boolean
+  /** Provider supports system instructions/prompts */
+  systemInstruction: boolean
+}
+
 // Common adapter interface that all providers implement
 export interface IAIAdapter {
   generate(req: GenerateRequest, ctx: AdapterContext): Promise<GenerateResponse>
   stream(req: GenerateRequest, ctx: AdapterContext): AsyncGenerator<string, void, unknown>
   testConnection(ctx: AdapterContext): Promise<boolean>
+  /** Return this adapter's provider capabilities for structured output. */
+  getCapabilities(ctx: AdapterContext): ProviderCapabilities
 }
 
 // Error class for provider errors
@@ -90,3 +110,15 @@ export function mapHttpError(status: number, body: string): ProviderError {
   const suffix = apiMessage ? ` (Provider: ${apiMessage})` : ''
   return new ProviderError(baseMsg + suffix, status, apiCode)
 }
+
+/**
+ * Strict JSON system instruction appended to provider requests when jsonMode is requested.
+ * This is the fallback when a provider does not support native JSON mode/schema.
+ */
+export const STRICT_JSON_INSTRUCTION =
+  'You must return exactly one valid JSON object matching the required schema. ' +
+  'Do not include Markdown. ' +
+  'Do not wrap the JSON in code fences. ' +
+  'Do not add explanations before or after the JSON. ' +
+  'Do not include comments. ' +
+  'Your first character must be { and your final character must be }.'
