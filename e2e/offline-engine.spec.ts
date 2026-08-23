@@ -1,24 +1,26 @@
 import { test, expect } from '@playwright/test'
 
 const BASE_URL = 'https://tecno2p.github.io/universal-ai-prompt-generator/'
+const GENERATOR_URL = BASE_URL + '#/generator'
 
 test.describe('Offline Prompt Engine Tests', () => {
-  test('generator page loads', async ({ page }) => {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
-    await page.waitForTimeout(1000)
+  test('generator page loads with input', async ({ page }) => {
+    await page.goto(GENERATOR_URL, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(2000)
 
-    // Look for generator-related elements
-    const inputs = page.locator('textarea, input[type="text"], [class*="prompt"], [class*="idea"]')
-    const count = await inputs.count()
-    console.log(`Found ${count} input elements`)
-    expect(count).toBeGreaterThan(0)
+    // Find the input textarea (first one, with placeholder containing "portfolio")
+    const textarea = page.locator('textarea').first()
+    await expect(textarea).toBeVisible({ timeout: 10000 })
+    const bodyText = await page.locator('body').innerText()
+    expect(bodyText.length).toBeGreaterThan(0)
   })
 
   test('can enter text in prompt input', async ({ page }) => {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
-    await page.waitForTimeout(1500)
+    await page.goto(GENERATOR_URL, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(2000)
 
     const textarea = page.locator('textarea').first()
+    await expect(textarea).toBeVisible({ timeout: 10000 })
     await textarea.fill('Create a modern portfolio website')
     await page.waitForTimeout(500)
 
@@ -27,45 +29,33 @@ test.describe('Offline Prompt Engine Tests', () => {
   })
 
   test('category selector exists', async ({ page }) => {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
-    await page.waitForTimeout(1000)
+    await page.goto(GENERATOR_URL, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(2000)
 
     // Look for select or category-related elements
     const selectors = page.locator('select, [class*="category"], [class*="select"], [role="combobox"]')
     const count = await selectors.count()
     console.log(`Found ${count} selector elements`)
+    expect(count).toBeGreaterThan(0)
   })
 
   test('generate button exists and is clickable', async ({ page }) => {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
-    await page.waitForTimeout(1000)
+    await page.goto(GENERATOR_URL, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(2000)
 
-    // Look for a generate button
-    const buttons = page.locator('button')
-    const count = await buttons.count()
-    let generateBtn = null
-
-    for (let i = 0; i < count; i++) {
-      const text = await buttons.nth(i).textContent().catch(() => '')
-      if (text && (text.toLowerCase().includes('generate') || text.toLowerCase().includes('create'))) {
-        generateBtn = buttons.nth(i)
-        console.log(`Found generate button: "${text.trim()}"`)
-        break
-      }
-    }
-
-    if (generateBtn) {
-      await expect(generateBtn).toBeVisible()
-    } else {
-      console.log('No generate button found — may be on a different tab')
-    }
+    // The generate button has class btn-primary and calls handleGenerate
+    const generateBtn = page.locator('button.btn-primary, button:has-text("Generate"), button:has-text("Create")')
+    await expect(generateBtn.first()).toBeVisible({ timeout: 10000 })
+    console.log('Generate button found')
   })
 
   test('hinglish input is accepted', async ({ page }) => {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
-    await page.waitForTimeout(1500)
+    await page.goto(GENERATOR_URL, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(2000)
 
     const textarea = page.locator('textarea').first()
+    await expect(textarea).toBeVisible({ timeout: 10000 })
+
     const hinglishInputs = [
       'Mere liye ek modern portfolio website bana',
       'Mujhe ek Android app banana hai',
@@ -82,10 +72,12 @@ test.describe('Offline Prompt Engine Tests', () => {
   })
 
   test('unicode and emoji input', async ({ page }) => {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' })
-    await page.waitForTimeout(1500)
+    await page.goto(GENERATOR_URL, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(2000)
 
     const textarea = page.locator('textarea').first()
+    await expect(textarea).toBeVisible({ timeout: 10000 })
+
     const specialInputs = [
       'मुझे एक responsive portfolio website बनानी है',
       'Create a 🚀 launch plan for my app',
@@ -100,7 +92,7 @@ test.describe('Offline Prompt Engine Tests', () => {
       expect(value).toBe(text)
     }
 
-    // Verify XSS payload was NOT executed
+    // Verify XSS payload was NOT executed (no alert dialog)
     const alertShown = await page.evaluate(() => !!(window as any).__xss_alert)
     expect(alertShown).toBe(false)
     console.log('XSS payload safely contained in textarea')
