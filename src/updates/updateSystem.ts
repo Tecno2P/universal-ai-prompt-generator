@@ -190,7 +190,20 @@ export async function createRollbackSnapshot(version: string): Promise<string> {
       const idb = req.result
       const tx = idb.transaction(ROLLBACK_STORE, 'readwrite')
       tx.objectStore(ROLLBACK_STORE).put(snapshot)
-      tx.oncomplete = () => resolve(snapshotId)
+      tx.oncomplete = async () => {
+        // Prune old snapshots — keep only the last 5
+        try {
+          const all = await getRollbackSnapshots()
+          if (all.length > 5) {
+            const toDelete = all.slice(5)
+            const delTx = idb.transaction(ROLLBACK_STORE, 'readwrite')
+            for (const s of toDelete) {
+              delTx.objectStore(ROLLBACK_STORE).delete(s.id)
+            }
+          }
+        } catch { /* pruning is best-effort */ }
+        resolve(snapshotId)
+      }
       tx.onerror = () => reject(tx.error)
     }
     req.onerror = () => reject(req.error)

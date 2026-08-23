@@ -51,7 +51,7 @@ export async function putCredential(record: EncryptedCredentialRecord): Promise<
 }
 
 export async function getCredential(id: string): Promise<EncryptedCredentialRecord | undefined> {
-  return tx('readwrite', s => s.get(id)) as Promise<EncryptedCredentialRecord | undefined>
+  return tx('readonly', s => s.get(id)) as Promise<EncryptedCredentialRecord | undefined>
 }
 
 export async function getAllCredentials(): Promise<EncryptedCredentialRecord[]> {

@@ -29,23 +29,21 @@ import { validateRecord, needsMigration, upgradeRecordVersion } from './credenti
 
 // Device key — generated once per session for "Remember This Device" mode
 let deviceKey: CryptoKey | null = null
-let deviceKeyLoaded = false
 
 async function getDeviceKey(): Promise<CryptoKey> {
   if (deviceKey) return deviceKey
-  // Generate a new device key — stored only in memory
-  // On reload, existing device-encrypted records CANNOT be decrypted
-  // unless we re-derive the key from some device-bound secret.
-  //
-  // For a pure client-side app, we generate a random device key per session
-  // and store it in IndexedDB (separate from credentials) so it survives reloads.
-  // This is a pragmatic trade-off: the key itself is non-extractable and
-  // stored separately from the encrypted credentials.
-  deviceKey = await generateDeviceKey()
-  deviceKeyLoaded = true
 
-  // Persist the raw device key in a separate IndexedDB record so it survives reloads
-  await persistDeviceKey(deviceKey)
+  // Try loading from storage first
+  const stored = await loadDeviceKey()
+  if (stored) {
+    deviceKey = stored
+    return deviceKey
+  }
+
+  // Generate a new device key and persist it
+  const raw = crypto.getRandomValues(new Uint8Array(32))
+  deviceKey = await importKey(raw)
+  await persistDeviceKey(raw)
   return deviceKey
 }
 
@@ -54,25 +52,18 @@ async function getDeviceKey(): Promise<CryptoKey> {
 const DEVICE_KEY_DB = 'prompt-gen-device-key'
 const DEVICE_KEY_STORE = 'device-key'
 
-async function persistDeviceKey(key: CryptoKey): Promise<void> {
-  // We can't export a non-extractable key, so we re-generate with extractable=true
-  // specifically for device storage. This key protects credentials at rest.
-  // In a production app, consider using the WebAuthn API or a hardware-backed key.
-  const raw = crypto.getRandomValues(new Uint8Array(32))
-  const storableKey = await importKey(raw)
-  deviceKey = storableKey
-
+async function persistDeviceKey(raw: Uint8Array): Promise<void> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DEVICE_KEY_DB, 1)
     req.onupgradeneeded = (e) => {
-      const db = (e.target as IDBOpenDBRequest).result
-      if (!db.objectStoreNames.contains(DEVICE_KEY_STORE)) {
-        db.createObjectStore(DEVICE_KEY_STORE)
+      const database = (e.target as IDBOpenDBRequest).result
+      if (!database.objectStoreNames.contains(DEVICE_KEY_STORE)) {
+        database.createObjectStore(DEVICE_KEY_STORE)
       }
     }
-    req.onsuccess = async () => {
-      const db = req.result
-      const tx = db.transaction(DEVICE_KEY_STORE, 'readwrite')
+    req.onsuccess = () => {
+      const database = req.result
+      const tx = database.transaction(DEVICE_KEY_STORE, 'readwrite')
       tx.objectStore(DEVICE_KEY_STORE).put(toBase64Key(raw), 'device-key')
       tx.oncomplete = () => resolve()
       tx.onerror = () => reject(tx.error)

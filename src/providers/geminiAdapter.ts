@@ -23,10 +23,10 @@ export class GeminiAdapter implements IAIAdapter {
       body.systemInstruction = { parts: [{ text: req.systemInstruction }] }
     }
 
-    const url = `${endpoint}/models/${req.model}:generateContent?key=${apiKey}`
+    const url = `${endpoint}/models/${req.model}:generateContent`
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify(body),
     })
 
@@ -64,10 +64,10 @@ export class GeminiAdapter implements IAIAdapter {
       body.systemInstruction = { parts: [{ text: req.systemInstruction }] }
     }
 
-    const url = `${endpoint}/models/${req.model}:streamGenerateContent?key=${apiKey}&alt=sse`
+    const url = `${endpoint}/models/${req.model}:streamGenerateContent?alt=sse`
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify(body),
     })
 

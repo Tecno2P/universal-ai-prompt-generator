@@ -13,10 +13,6 @@ export function HistoryPage() {
   }, [])
 
   const handleClear = async () => {
-    for (const h of history) {
-      await db.deleteSavedPrompt(h.id)
-    }
-    // Clear history store directly
     const { clearStore, STORES } = await import('@/database/db')
     await clearStore(STORES.history)
     setHistory([])
