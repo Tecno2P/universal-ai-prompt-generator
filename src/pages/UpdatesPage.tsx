@@ -4,15 +4,13 @@ import { useToast } from '@/context/ToastContext'
 import { t } from '@/i18n'
 import { db } from '@/database/db'
 import {
-  getCurrentVersion, getAllVersions, getOfficialVersion, getRollbackSnapshots,
-  validateUpdatePackage, applyUpdatePackage, buildUpdateRequestPrompt, incrementVersion,
+  getAllVersions, getOfficialVersion, getRollbackSnapshots,
   generateSubmissionPackage, generateGitHubIssueUrl, downloadSubmissionPackage, rollbackToVersion,
   type TrustLevel, TRUST_LABELS, TRUST_COLORS,
 } from '@/updates/updateSystem'
-import type { ProviderConfig, DatabaseVersion, PromptTemplate, UpdatePackage, UpdateChange } from '@/types'
-import { generateWithProvider } from '@/providers/manager'
-import { ProviderError } from '@/providers/interface'
-import { normalizeAIResponse } from '@/providers/normalizeResponse'
+import { UpdateService } from '@/updates/updateService'
+import type { ProviderConfig, DatabaseVersion, PromptTemplate, UpdatePackage } from '@/types'
+import type { ValidationResult } from '@/updates/updateSystem'
 
 export function UpdatesPage() {
   const { settings, hasAI } = useApp()
@@ -30,7 +28,7 @@ export function UpdatesPage() {
   const [snapshotCount, setSnapshotCount] = useState(0)
 
   const reload = useCallback(async () => {
-    setVersion(await getCurrentVersion())
+    setVersion(await UpdateService.verify().then(r => r.success ? r.data.version : '1.0.0'))
     setOfficialVersion(await getOfficialVersion())
     setVersions(await getAllVersions())
     setProviders(await db.getAllProviders())
@@ -48,65 +46,45 @@ export function UpdatesPage() {
     }
     setLoading(true)
     try {
+      // The page never calls providers, normalizes JSON, or validates schema
+      // directly — it delegates the entire pipeline to UpdateService.
       const provider = providers[0]
-      const categories = Array.from(new Set(templates.map(t => t.category)))
-      const languages = Array.from(new Set(templates.map(t => t.language)))
-      const prompt = buildUpdateRequestPrompt(version, templates.length, categories, languages)
+      const result = await UpdateService.checkForUpdates(provider)
 
-      const result = await generateWithProvider(provider, {
-        model: provider.model,
-        systemInstruction: 'You are a JSON API. Return ONLY valid JSON. No reasoning, no explanation, no markdown. Start your response with { and end with }.',
-        userPrompt: prompt,
-        temperature: 0.3,
-        maxTokens: 4000,
-        jsonMode: true,
-      })
-
-      let parsed: unknown
-      try {
-        // Use robust normalizer: strips BOM, code fences, extracts JSON object,
-        // repairs trailing commas / single quotes, etc.
-        const normalized = normalizeAIResponse(result.text)
-        parsed = JSON.parse(normalized.cleaned)
-      } catch (parseErr) {
-        const snippet = result.text.slice(0, 200).replace(/\n/g, ' ')
-        const errMsg = parseErr instanceof Error ? parseErr.message : 'Unknown parsing error'
-        showToast(`Could not parse AI response as JSON: ${errMsg}. Response starts with: "${snippet}..."`, 'error')
+      if (!result.success) {
+        showToast(result.error.message, 'error')
         return
       }
 
-      const validation = validateUpdatePackage(parsed)
+      const { package: pkg, validation } = result.data
       setValidationResult({ valid: validation.valid, errors: validation.errors, warnings: validation.warnings })
 
-      if (validation.valid && validation.changes.length > 0) {
-        setPendingPackage({
-          schema_version: 1,
-          database_version: incrementVersion(version),
-          changes: validation.changes as UpdateChange[],
-          generatedAt: Date.now(),
-          source: `AI (${provider.providerId})`,
-        })
-        showToast(`Found ${validation.changes.length} new updates to review`, 'success')
+      if (validation.valid && pkg.changes.length > 0) {
+        setPendingPackage(pkg)
+        showToast(`Found ${pkg.changes.length} new updates to review`, 'success')
       } else if (validation.errors.length > 0) {
         showToast(`Validation failed: ${validation.errors[0]}`, 'error')
       } else {
         showToast(t(lang, 'updates.noUpdates'), 'info')
       }
     } catch (err) {
-      const msg = err instanceof ProviderError ? err.message :
-        err instanceof Error ? err.message : 'Update check failed'
+      const msg = err instanceof Error ? err.message : 'Update check failed'
       showToast(msg, 'error')
     } finally {
       setLoading(false)
     }
-  }, [hasAI, providers, templates, version, lang, showToast])
+  }, [hasAI, providers, lang, showToast])
 
   const handleApprove = useCallback(async () => {
     if (!pendingPackage) return
     setLoading(true)
     try {
-      const result = await applyUpdatePackage(pendingPackage)
-      showToast(`Applied ${result.applied} updates (${result.skipped} skipped). Rollback snapshot created.`, 'success')
+      const result = await UpdateService.install(pendingPackage)
+      if (!result.success) {
+        showToast(result.error.message, 'error')
+        return
+      }
+      showToast(`Applied ${result.data.installed} updates (version ${result.data.version}). Rollback snapshot created.`, 'success')
       setPendingPackage(null)
       setValidationResult(null)
       await reload()
