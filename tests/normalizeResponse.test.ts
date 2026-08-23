@@ -87,7 +87,7 @@ describe('normalizeAIResponse', () => {
       category: 'general',
     }))
     const input = JSON.stringify({ schema_version: 1, database_version: '1.0.1', changes })
-    const result = parseAIJsonResponse(input)
+    const result = parseAIJsonResponse<{ changes: typeof changes }>(input)
     expect(result.changes).toHaveLength(50)
   })
 })
