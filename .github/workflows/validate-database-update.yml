@@ -1,0 +1,71 @@
+name: Validate Database Update
+
+on:
+  pull_request:
+    paths:
+      - 'data/**'
+      - 'src/data/**'
+  issues:
+    types: [labeled]
+
+jobs:
+  validate:
+    if: contains(github.event.pull_request.labels.*.name, 'database-update') || contains(github.event.issue.labels.*.name, 'database-update')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate JSON schema
+        run: |
+          echo "Validating database update JSON files..."
+          find data/ -name "*.json" -type f | while read file; do
+            echo "Checking: $file"
+            node -e "JSON.parse(require('fs').readFileSync('$file','utf8'))" || {
+              echo "Invalid JSON: $file"
+              exit 1
+            }
+          done
+          echo "All JSON files are valid"
+
+      - name: Check for duplicate IDs
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const ids = new Set();
+            const dupes = [];
+            function walk(dir) {
+              if (!fs.existsSync(dir)) return;
+              for (const entry of fs.readdirSync(dir)) {
+                const full = path.join(dir, entry);
+                if (fs.statSync(full).isDirectory()) { walk(full); continue; }
+                if (!entry.endsWith('.json')) continue;
+                const data = JSON.parse(fs.readFileSync(full, 'utf8'));
+                const items = Array.isArray(data) ? data : (data.changes || [data]);
+                for (const item of items) {
+                  if (item.id) {
+                    if (ids.has(item.id)) dupes.push(item.id);
+                    else ids.add(item.id);
+                  }
+                }
+              }
+            }
+            walk('data/');
+            if (dupes.length > 0) {
+              console.error('Duplicate IDs found:', dupes.join(', '));
+              process.exit(1);
+            }
+            console.log('No duplicate IDs found');
+          "
+
+      - name: Build application
+        run: |
+          npm install
+          npm run build
+
+      - name: Report results
+        run: |
+          echo "Database update validation complete. All checks passed."
