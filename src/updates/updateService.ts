@@ -42,6 +42,7 @@ import {
   installFromSandbox,
   discardSandbox,
 } from '@/database/sandbox'
+import { applyUpdatePackage } from './updateSystem'
 import type { SandboxDiff, SandboxValidationResult } from '@/database/sandboxTypes'
 import { db } from '@/database/db'
 
@@ -125,6 +126,8 @@ export interface CheckForUpdatesResult {
   package: UpdatePackage
   validation: ValidationResult
   rawMethod: 'direct' | 'fence-removal' | 'object-extraction' | 'repair' | 'test-mode'
+  diff?: SandboxDiff
+  sandboxValidation?: SandboxValidationResult
 }
 
 export interface PrepareSandboxResult {
@@ -346,9 +349,34 @@ export const UpdateService = {
       }
       updateStateMachine.setPackage(pkg)
 
-      // Hold in `awaiting_review` for the caller (UI) to drive install.
-      updateStateMachine.transition('awaiting_review')
-      return ok({ context: ctx, package: pkg, validation, rawMethod })
+      // ── sandboxing: apply to isolated sandbox, validate, generate diff ──
+      updateStateMachine.transition('sandboxing')
+      try {
+        await createSandbox(pkg.database_version)
+        await applyToSandbox(pkg.changes)
+        const sandboxValidation = await validateSandbox()
+        const diff = await generateDiff()
+
+        if (!sandboxValidation.valid) {
+          await discardSandbox().catch(() => {})
+          return err(
+            ERROR_CODES.UPDATE_SANDBOX_FAILED,
+            `Sandbox validation failed: ${sandboxValidation.errors.join('; ')}`,
+            { cause: sandboxValidation, retryable: false },
+          )
+        }
+
+        // Hold in `awaiting_review` for the caller (UI) to drive install.
+        updateStateMachine.transition('awaiting_review')
+        return ok({ context: ctx, package: pkg, validation, rawMethod, diff, sandboxValidation })
+      } catch (e) {
+        await discardSandbox().catch(() => {})
+        return err(
+          ERROR_CODES.UPDATE_SANDBOX_FAILED,
+          `Sandbox preparation failed: ${e instanceof Error ? e.message : String(e)}`,
+          { cause: e, retryable: false },
+        )
+      }
     } catch (e) {
       return err(
         ERROR_CODES.UPDATE_AI_JSON_INVALID,
@@ -434,9 +462,16 @@ export const UpdateService = {
       }
 
       // Install from sandbox → production.
-      let installed: { installed: number; version: string }
+      // If no sandbox exists (e.g. install called without prepareSandbox),
+      // fall back to direct applyUpdatePackage.
+      let installed: { applied: number; skipped: number }
       try {
-        installed = await installFromSandbox()
+        try {
+          installed = await installFromSandbox()
+        } catch (sandboxErr) {
+          // No sandbox — apply directly with rollback protection already in place.
+          installed = await applyUpdatePackage(pkg)
+        }
       } catch (e) {
         return err(
           ERROR_CODES.UPDATE_INSTALL_FAILED,
@@ -476,10 +511,13 @@ export const UpdateService = {
         /* version history is best-effort */
       }
 
+      const installedCount = 'installed' in installed ? installed.installed : (installed as { applied: number }).applied
+      const installedVersion = 'version' in installed ? installed.version : pkg.database_version
+
       updateStateMachine.transition('completed')
       return ok({
-        installed: installed.installed,
-        version: installed.version,
+        installed: installedCount,
+        version: installedVersion,
         rollbackSnapshotId: snapshotId,
       })
     } catch (e) {
