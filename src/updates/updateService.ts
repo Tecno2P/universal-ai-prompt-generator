@@ -464,13 +464,18 @@ export const UpdateService = {
       // Install from sandbox → production.
       // If no sandbox exists (e.g. install called without prepareSandbox),
       // fall back to direct applyUpdatePackage.
-      let installed: { applied: number; skipped: number }
+      let installedCount: number
+      let installedVersion: string
       try {
         try {
-          installed = await installFromSandbox()
-        } catch (sandboxErr) {
+          const sandboxResult = await installFromSandbox()
+          installedCount = sandboxResult.installed
+          installedVersion = sandboxResult.version
+        } catch {
           // No sandbox — apply directly with rollback protection already in place.
-          installed = await applyUpdatePackage(pkg)
+          const directResult = await applyUpdatePackage(pkg)
+          installedCount = directResult.applied
+          installedVersion = pkg.database_version
         }
       } catch (e) {
         return err(
@@ -504,7 +509,7 @@ export const UpdateService = {
         await db.putVersion({
           version: pkg.database_version,
           installedAt: Date.now(),
-          changeCount: installed.installed,
+          changeCount: installedCount,
           source: pkg.source || 'ai',
         })
       } catch {
@@ -516,7 +521,7 @@ export const UpdateService = {
         installed: installedCount,
         version: installedVersion,
         rollbackSnapshotId: snapshotId,
-      })
+      } as InstallResult)
     } catch (e) {
       return err(
         ERROR_CODES.UPDATE_INSTALL_FAILED,
