@@ -7,6 +7,7 @@ on:
       - 'e2e/database-update.real-api.spec.ts'
       - 'e2e/database-update.mock.spec.ts'
       - 'src/main.tsx'
+      - '.github/workflows/real-api-tests.yml'
 
 jobs:
   real-api-tests:
@@ -23,7 +24,9 @@ jobs:
         run: npm install
 
       - name: Install Playwright
-        run: npx playwright install --with-deps chromium
+        run: |
+          npm install -D @playwright/test
+          npx playwright install --with-deps chromium
 
       - name: Run mock tests (no API key needed)
         env:
