@@ -465,7 +465,7 @@ Follow this exact schema:
 }
 
 Rules:
-- Generate 5-10 new templates that fill gaps in the current database
+- Generate 1-3 new templates that fill gaps in the current database
 - Each template must be detailed and production-ready
 - Use realistic, useful categories from the list above
 - IDs must be unique and kebab-case

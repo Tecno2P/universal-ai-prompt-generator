@@ -66,7 +66,16 @@ export class OpenAIAdapter implements IAIAdapter {
     const data = await res.json()
     // Use content only — reasoning_content is the model's internal thinking, NOT the answer
     const choice = data?.choices?.[0]?.message
-    const text = choice?.content || ''
+    let text = choice?.content || ''
+    
+    // Fallback for reasoning models (e.g. sarvam-105b): if content is empty
+    // but reasoning_content has text, try to extract JSON from reasoning_content.
+    // This happens when max_tokens is consumed by reasoning before the model
+    // emits its final answer.
+    if (!text && choice?.reasoning_content) {
+      text = choice.reasoning_content
+    }
+    
     const tokensUsed = data?.usage?.total_tokens
 
     return {

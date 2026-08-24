@@ -233,7 +233,7 @@ export const UpdateService = {
               'You are a JSON API. Return ONLY valid JSON. No reasoning, no explanation, no markdown. Start your response with { and end with }.',
             userPrompt: prompt,
             temperature: 0.3,
-            maxTokens: 4000,
+            maxTokens: 8000,
             jsonMode: true,
           })
         } catch (e) {
@@ -297,7 +297,7 @@ export const UpdateService = {
                 `Previous response that failed to parse:\n${rawText.slice(0, 1000)}\n\n` +
                 `Return ONLY the corrected JSON object now.`,
               temperature: 0,
-              maxTokens: 4000,
+              maxTokens: 8000,
               jsonMode: true,
             })
             rawText = correction.text || rawText
