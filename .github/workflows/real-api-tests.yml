@@ -12,7 +12,7 @@ on:
 jobs:
   real-api-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -31,7 +31,7 @@ jobs:
       - name: Run mock tests (no API key needed)
         env:
           RUN_REAL_AI_TESTS: 'false'
-        run: npx playwright test e2e/database-update.mock.spec.ts
+        run: npx playwright test e2e/database-update.mock.spec.ts --retries=0
 
       - name: Run real API integration tests
         env:
@@ -39,7 +39,7 @@ jobs:
           TEST_AI_PROVIDER: ${{ secrets.TEST_AI_PROVIDER }}
           TEST_AI_API_KEY: ${{ secrets.TEST_AI_API_KEY }}
           TEST_AI_MODEL: ${{ secrets.TEST_AI_MODEL }}
-        run: npx playwright test e2e/database-update.real-api.spec.ts
+        run: npx playwright test e2e/database-update.real-api.spec.ts --retries=0 --timeout=120000
 
       - name: Upload test report
         if: always()
