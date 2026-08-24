@@ -511,9 +511,6 @@ export const UpdateService = {
         /* version history is best-effort */
       }
 
-      const installedCount = 'installed' in installed ? installed.installed : (installed as { applied: number }).applied
-      const installedVersion = 'version' in installed ? installed.version : pkg.database_version
-
       updateStateMachine.transition('completed')
       return ok({
         installed: installedCount,
