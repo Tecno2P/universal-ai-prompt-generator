@@ -1,0 +1,50 @@
+name: Real API Integration Tests
+
+on:
+  workflow_dispatch:  # Manual trigger only
+  push:
+    paths:
+      - 'e2e/database-update.real-api.spec.ts'
+      - 'e2e/database-update.mock.spec.ts'
+      - 'src/main.tsx'
+
+jobs:
+  real-api-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run mock tests (no API key needed)
+        env:
+          RUN_REAL_AI_TESTS: 'false'
+        run: npx playwright test e2e/database-update.mock.spec.ts
+
+      - name: Run real API integration tests
+        env:
+          RUN_REAL_AI_TESTS: ${{ secrets.RUN_REAL_AI_TESTS }}
+          TEST_AI_PROVIDER: ${{ secrets.TEST_AI_PROVIDER }}
+          TEST_AI_API_KEY: ${{ secrets.TEST_AI_API_KEY }}
+          TEST_AI_MODEL: ${{ secrets.TEST_AI_MODEL }}
+        run: npx playwright test e2e/database-update.real-api.spec.ts
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-api-test-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
