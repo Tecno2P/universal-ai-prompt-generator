@@ -3,14 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Universal AI Prompt Generator — Offline Prompt Engine + Multi-AI API Client + Hinglish + Multilingual + Local Database + PWA",
+  "description": "Universal AI Prompt Generator \u2014 Offline Prompt Engine + Multi-AI API Client + Hinglish + Multilingual + Local Database + PWA",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:e2e": "npx playwright test",
+    "test:integration": "RUN_REAL_AI_TESTS=true npx playwright test --grep \"real-api\""
   },
   "dependencies": {
     "react": "^18.3.1",
