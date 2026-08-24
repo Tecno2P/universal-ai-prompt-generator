@@ -191,7 +191,7 @@ test.describe('Database Update — Real API Integration', () => {
     await checkBtn.click()
 
     await expect(
-      page.getByText(/found.*updates|validation failed|request failed|no updates|error/i)
+      page.getByText(/found.*updates|validation failed|request failed|no updates|error/i).first()
     ).toBeVisible({ timeout: 90000 })
 
     const pageText = await page.evaluate(() => document.body?.innerText || '')
@@ -208,7 +208,7 @@ test.describe('Database Update — Real API Integration', () => {
     await checkBtn.click()
 
     await expect(
-      page.getByText(/found.*updates|validation failed|request failed|no updates|error/i)
+      page.getByText(/found.*updates|validation failed|request failed|no updates|error/i).first()
     ).toBeVisible({ timeout: 90000 })
 
     const pageText = await page.evaluate(() => document.body?.innerText || '')
@@ -226,7 +226,7 @@ test.describe('Database Update — Real API Integration', () => {
     await checkBtn.click()
 
     await expect(
-      page.getByText(/found.*updates|validation failed|request failed|no updates|error/i)
+      page.getByText(/found.*updates|validation failed|request failed|no updates|error/i).first()
     ).toBeVisible({ timeout: 90000 })
 
     const pageText = await page.evaluate(() => document.body?.innerText || '')
@@ -250,7 +250,7 @@ test.describe('Database Update — Real API Integration', () => {
     await checkBtn.click()
 
     await expect(
-      page.getByText(/found.*updates|validation failed|request failed|no updates|error/i)
+      page.getByText(/found.*updates|validation failed|request failed|no updates|error/i).first()
     ).toBeVisible({ timeout: 90000 })
 
     await page.waitForTimeout(2000)
