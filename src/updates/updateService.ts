@@ -195,7 +195,7 @@ export const UpdateService = {
 
     try {
       // ── checking: gather context ────────────────────────────
-      updateStateMachine.transition('checking')
+      // State is already 'checking' — start() transitioned idle → checking.
       const currentVersion = await getCurrentVersion()
       const templates = await db.getAllTemplates()
       const categories = Array.from(new Set(templates.map((t) => t.category)))
@@ -284,9 +284,10 @@ export const UpdateService = {
           }
           // Re-ask with a stricter correction request, then loop.
           try {
-            updateStateMachine.transition('parsing')
+            // Go parsing → failed → idle, then start fresh.
+            updateStateMachine.transition('failed')
             updateStateMachine.transition('idle')
-            updateStateMachine.start()
+            updateStateMachine.start()  // → checking
             updateStateMachine.transition('requesting_ai')
             const correction = await generateWithProvider(provider, {
               model: provider.model,
@@ -401,8 +402,26 @@ export const UpdateService = {
       )
     }
     try {
-      updateStateMachine.start()
-      updateStateMachine.transition('sandboxing')
+      // The state machine should already be in 'awaiting_review' after
+      // checkForUpdates completed. Transition directly to sandboxing.
+      // If we're in idle/failed (fresh start), go idle → checking → validating → sandboxing.
+      if (updateStateMachine.state === 'awaiting_review') {
+        updateStateMachine.transition('sandboxing')
+      } else if (!updateStateMachine.isRunning) {
+        updateStateMachine.start()  // → checking
+        updateStateMachine.transition('requesting_ai')
+        updateStateMachine.transition('receiving')
+        updateStateMachine.transition('normalizing')
+        updateStateMachine.transition('parsing')
+        updateStateMachine.transition('validating')
+        updateStateMachine.transition('sandboxing')
+      } else {
+        return err(
+          ERROR_CODES.UPDATE_OPERATION_IN_PROGRESS,
+          'Cannot prepare sandbox: an operation is already in progress.',
+          { retryable: false },
+        )
+      }
 
       const handle = await createSandbox(pkg.database_version)
       await applyToSandbox(pkg.changes)
@@ -444,7 +463,14 @@ export const UpdateService = {
       if (updateStateMachine.state === 'awaiting_review' || updateStateMachine.state === 'sandboxing') {
         updateStateMachine.transition('installing')
       } else if (!updateStateMachine.isRunning) {
-        updateStateMachine.start()
+        // Fresh install without prior checkForUpdates — start the pipeline.
+        updateStateMachine.start()  // → checking
+        updateStateMachine.transition('requesting_ai')
+        updateStateMachine.transition('receiving')
+        updateStateMachine.transition('normalizing')
+        updateStateMachine.transition('parsing')
+        updateStateMachine.transition('validating')
+        updateStateMachine.transition('awaiting_review')
         updateStateMachine.transition('installing')
       }
 
