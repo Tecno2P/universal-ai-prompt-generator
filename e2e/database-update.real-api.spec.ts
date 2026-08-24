@@ -103,7 +103,7 @@ test.describe('Database Update — Real API Integration', () => {
     await page.goto(UPDATES_URL, { waitUntil: 'networkidle' })
     await page.waitForTimeout(2000)
 
-    await expect(page.getByText(/database updates/i)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { name: 'Database Updates' })).toBeVisible({ timeout: 10000 })
 
     // Verify the page is functional — no JavaScript errors
     const errors: string[] = []
